@@ -1,0 +1,27 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3265dc8ce509465438ae9f7531398b1f, type: 3}
+  m_Name: Vanguard
+  m_EditorClassIdentifier: 
+  atkType: 1
+  characterName: Van
+  rarity: 0
+  baseHP: 1500
+  baseATK: 200
+  baseDEF: 150
+  baseRES: 5
+  attackSpeed: 1.05
+  numberOfBlock: 1
+  numberOfTarget: 1
+  cost: 10
+  redeploymentTime: 70
+  icon: {fileID: 0}
