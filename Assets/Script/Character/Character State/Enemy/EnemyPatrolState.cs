@@ -1,12 +1,11 @@
-using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
+using TowerDefence.Module.Characters;
 
+namespace TowerDefence.Module.State{
 public class EnemyPatrolState : IEnemyState
 {
     public void EnemyEnterState(Enemy enemy)
     {
-        enemy.patrol();
+        enemy.Patrol();
     }
 
     public void EnemyExitState(Enemy enemy)
@@ -22,11 +21,11 @@ public class EnemyPatrolState : IEnemyState
             return;
         }
 
-        if (!enemy.IsAttacking && enemy.IsBlocked && enemy.targets.Count != 0)
+        if (!enemy.IsAttacking && enemy.IsBlocked && enemy.Targets.Count != 0)
         {
-            if (enemy.targets[0] == null)
+            if (enemy.Targets[0] == null)
             {
-                enemy.targets.RemoveAt(0);
+                enemy.Targets.RemoveAt(0);
                 enemy.IsBlocked = false;
             }
 
@@ -36,4 +35,6 @@ public class EnemyPatrolState : IEnemyState
             }
         }
     }
+}
+
 }
