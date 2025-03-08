@@ -2279,9 +2279,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 20a813d2953021e48a1d71c095a848a1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  skillButton: {fileID: 7243479672790348371}
-  cancelButton: {fileID: 3661040513724568935}
-  op: {fileID: 4964289739825251213}
+  _skillButton: {fileID: 0}
+  _cancelButton: {fileID: 0}
+  _operator: {fileID: 0}
 --- !u!1 &5592198616798611116
 GameObject:
   m_ObjectHideFlags: 0
@@ -2861,24 +2861,16 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2cf4ba90d58a35841aae1d18ef53ccee, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  anim: {fileID: 5360983573482547216}
-  characterStats: {fileID: 11400000, guid: f1c599b80d462b846ac8024b869bc8f3, type: 2}
+  CharacterStats: {fileID: 11400000, guid: f1c599b80d462b846ac8024b869bc8f3, type: 2}
   Healthbar: {fileID: 7699189440794535611}
-  CurrentHP: 0
-  CurrentATK: 0
-  CurrentDEF: 0
-  CurrentRES: 0
-  CurrentASPD: 0
-  current_sp: 0
-  targets: []
-  abilityHolder: {fileID: 7425320475102664342}
-  attack_range: {fileID: 7443904278520468016}
+  _atkType: 0
+  _abilityHolder: {fileID: 7425320475102664342}
+  _attack_range: {fileID: 0}
   cost: 0
   rarity: 3
   lvl: 0
   blockedEnemy: 0
   _redeployTime: 0
-  stageCard: {fileID: 0}
   UIOperatorAction: {fileID: 1607644941803556266}
 --- !u!54 &1309408273355487390
 Rigidbody:

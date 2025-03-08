@@ -6,68 +6,75 @@ using UnityEngine;
 
 namespace TowerDefence.Module.Gameplay
 {
-    public class PlaceObjectOnGrid : MonoBehaviour
+    public class PlaceObjectOnGrid : StageSubject
     {
-        private List<IStageObserver> _observers = new List<IStageObserver>();
+        private Plane _plane;
+        private Vector3 _mousePosition;
+        public Vector3 SmoothMousePosition;
 
-        private Plane plane;
-        private Vector3 mousePosition;
-        public Vector3 smoothMousePosition;
-
-        [HideInInspector] public GameObject latestOP;
-        private CubeEditor[] placeable_cubes;
-        private bool isRotating;
+        private CubeEditor[] _placeable_cubes;
+        private bool _isRotating;
+        public GameObject CurrentOperator { get; private set; }
 
         private void Start()
         {
-            plane = new Plane(Vector3.up, transform.position);
-            placeable_cubes = GetComponentsInChildren<CubeEditor>();
-            isRotating = false;
+            _plane = new Plane(Vector3.up, transform.position);
+            _placeable_cubes = GetComponentsInChildren<CubeEditor>();
+            _isRotating = false;
         }
 
         private void Update()
         {
             GetMousePositionOnGrid();
         }
+                               
+        public void SetCurrentOperator(GameObject op)
+        {
+            CurrentOperator = op;
+            if(CurrentOperator != null)
+            {
+                CurrentOperator.SetActive(true);
+            }
+        }
 
         public void DestroyCurrentOpPlacement()
         {
-            Destroy(latestOP);
-            latestOP = null;
-            isRotating = false;
+            Destroy(CurrentOperator);
+            CurrentOperator = null;
+            _isRotating = false;
         }
 
         void GetMousePositionOnGrid()
         {
             Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
 
-            if (latestOP == null) return;
+            if (CurrentOperator == null) return;
 
-            if (plane.Raycast(ray, out var enter))
+            if (_plane.Raycast(ray, out var enter))
             {
-                mousePosition = ray.GetPoint(enter);
-                smoothMousePosition = mousePosition;
-                mousePosition.y = 0;
-                mousePosition = Vector3Int.RoundToInt(mousePosition);
-                foreach (var cube in placeable_cubes)
+                _mousePosition = ray.GetPoint(enter);
+                SmoothMousePosition = _mousePosition;
+                _mousePosition.y = 0;
+                _mousePosition = Vector3Int.RoundToInt(_mousePosition);
+                foreach (var cube in _placeable_cubes)
                 {
-                    if (mousePosition != cube.transform.position || !cube.isPlaceable) continue;
+                    if (_mousePosition != cube.transform.position || !cube.isPlaceable) continue;
 
-                    latestOP.GetComponent<ObjFollowMouse>().isOnGrid = true;
+                    CurrentOperator.GetComponent<ObjFollowMouse>().isOnGrid = true;
 
-                    if (Input.GetMouseButton(0) && !isRotating && latestOP != null)
+                    if (Input.GetMouseButton(0) && !_isRotating && CurrentOperator != null)
                     {
-                        latestOP.transform.position = cube.transform.position + new Vector3(0f, 0.7f, 0f);
+                        CurrentOperator.transform.position = cube.transform.position + new Vector3(0f, 0.7f, 0f);
                     }
-                    else if (Input.GetMouseButtonUp(0) && !isRotating && latestOP != null)
+                    else if (Input.GetMouseButtonUp(0) && !_isRotating && CurrentOperator != null)
                     {
                         cube.isPlaceable = false;
-                        isRotating = true;
-                        latestOP.GetComponent<ObjFollowMouse>().enabled = false;
-                        latestOP.GetComponentInChildren<Operator>().SetGrid(cube);
+                        _isRotating = true;
+                        CurrentOperator.GetComponent<ObjFollowMouse>().enabled = false;
+                        CurrentOperator.GetComponentInChildren<Operator>().SetGrid(cube);
                     }
                 }
-                if (isRotating)
+                if (_isRotating)
                 {
                     StartRotating();
                 }
@@ -76,51 +83,47 @@ namespace TowerDefence.Module.Gameplay
 
         private void StartRotating()
         {
-            Vector3 rotation = mousePosition - latestOP.transform.position;
-            if (Input.GetMouseButton(0) && latestOP != null)
+            if (CurrentOperator == null) return;
+
+            var operatorComp = CurrentOperator.GetComponentInChildren<Operator>();
+
+            Vector3 direction = _mousePosition - CurrentOperator.transform.position;
+
+            if (Input.GetMouseButton(0))
             {
-                if (rotation.x > 0.5f)
+                // Rotate based on the direction (facing)
+                if (Mathf.Abs(direction.x) > Mathf.Abs(direction.z))
                 {
-                    latestOP.GetComponentInChildren<Operator>().gameObject.transform.rotation = Quaternion.Euler(0f, 0f, 0f);
+                    // Left or Right
+                    if (direction.x > 0)
+                    {
+                        operatorComp.transform.rotation = Quaternion.Euler(0f, 90f, 0f);  // Facing right
+                    }
+                    else
+                    {
+                        operatorComp.transform.rotation = Quaternion.Euler(0f, -90f, 0f);  // Facing left
+                    }
                 }
-                else if (rotation.z > 0.5f)
+                else
                 {
-                    latestOP.GetComponentInChildren<Operator>().gameObject.transform.rotation = Quaternion.Euler(0f, -90f, 0f);
-                }
-                else if (rotation.x < -0.5f)
-                {
-                    latestOP.GetComponentInChildren<Operator>().gameObject.transform.rotation = Quaternion.Euler(0f, 180f, 0f);
-                }
-                else if (rotation.z < -0.5f)
-                {
-                    latestOP.GetComponentInChildren<Operator>().gameObject.transform.rotation = Quaternion.Euler(0f, 90f, 0f);
+                    // Forward or Backward
+                    if (direction.z > 0)
+                    {
+                        operatorComp.transform.rotation = Quaternion.Euler(0f, 0f, 0f);  // Facing forward
+                    }
+                    else
+                    {
+                        operatorComp.transform.rotation = Quaternion.Euler(0f, 180f, 0f);  // Facing backward
+                    }
                 }
             }
-            else if (Input.GetMouseButtonUp(0) && (rotation.x > 0.5f || rotation.x < -0.5f || rotation.z > 0.5f || rotation.z < -0.5f))
+            else if (Input.GetMouseButtonUp(0) && (Mathf.Abs(direction.x) > 0.5f || Mathf.Abs(direction.z) > 0.5f))
             {
-                isRotating = false;
-                latestOP.GetComponentInChildren<Operator>().SwitchState(latestOP.GetComponentInChildren<Operator>().DeployedState);
-                NotifyObserverCharacterSpawn(latestOP.GetComponentInChildren<Operator>());
-                latestOP = null;
+                _isRotating = false;
+                operatorComp.SwitchState(operatorComp.DeployedState);
+                NotifyOperatorEvents(StageCharacterEvents.CharacterDeployed, operatorComp);
+                CurrentOperator = null;
             }
         }
-        public void AddObserver(IStageObserver observer)
-        {
-            _observers.Add(observer);
-        }
-
-        public void RemoveObserver(IStageObserver observer)
-        {
-            _observers.Remove(observer);
-        }
-
-        private void NotifyObserverCharacterSpawn(Operator op)
-        {
-            _observers.ForEach((_observers) =>
-            {
-                _observers.OnNotifyCharacterSpawn(op);
-            });
-        }
-
     }
 }

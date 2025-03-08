@@ -5,7 +5,7 @@ using UnityEngine;
 [CreateAssetMenu(fileName = "Character Stats", menuName = "Character Stats")]
 public class CharacterStats : ScriptableObject
 {
-    public AttackType atkType;
+    public AttackDamageType atkType;
     public string characterName;
     [Range(1, 6)] public int rarity;
     public int baseHP;

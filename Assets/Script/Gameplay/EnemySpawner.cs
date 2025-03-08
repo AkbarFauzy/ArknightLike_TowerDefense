@@ -52,7 +52,7 @@ namespace TowerDefence.Module.Spawner {
                     enemy.transform.parent = this.transform;
                     enemy.GetComponentInChildren<Enemy>().SetStats(spawn.stats);
                     _latestEnemy = enemy.GetComponentInChildren<Enemy>();
-                    NotifyObserverEnemySpawn(_latestEnemy);
+                    NotifyEnemyEvents(StageCharacterEvents.CharacterDeployed ,_latestEnemy);
                 }
             }
         }
@@ -80,11 +80,10 @@ namespace TowerDefence.Module.Spawner {
             });
         }
 
-        private void NotifyObserverEnemySpawn(Enemy enemy)
-        {
+        private void NotifyEnemyEvents(StageCharacterEvents stageEnemyEvent, Enemy enemy) {
             _observers.ForEach((_observers) =>
             {
-                _observers.OnNotifyCharacterSpawn(enemy);
+                _observers.OnEnemyEvents(stageEnemyEvent, enemy);
             });
         }
     }

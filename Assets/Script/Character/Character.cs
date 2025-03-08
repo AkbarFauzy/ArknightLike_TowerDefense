@@ -4,31 +4,47 @@ using UnityEngine;
 using TowerDefence.Observer;
 using TowerDefence.Module.Ability;
 
-public enum AttackType { 
+public enum AttackType
+{
+    Ranged,
+    Ranged_AOE,
+    Melee,
+    Melee_AOE,
+    Multi,
+};
+
+public enum AttackDamageType { 
     True_Damage, 
     Physical_Damage, 
     Magic_Damage
 };
 
 namespace TowerDefence.Module.Characters {
-    public abstract class Character : MonoBehaviour, IDamageable, IHaveAbility
+    public abstract class Character : StageSubject, IDamageable, IHaveAbility
     {
-        protected List<IStageObserver> _observers = new List<IStageObserver>();
         protected Animator _anim;
 
+        [Space]
+        [Header("Character Stats")]
         public CharacterStats CharacterStats;
+        
+        [Space]
+        [Header("Character Canvas")]
+        [SerializeField] private UIProgressBar Healthbar;
+        
+        private AttackDamageType _atkDamageType;
 
-        [SerializeField] private ProgressBar Healthbar;
+        public float CurrentHP { get; set; }
+        public int CurrentATK { get; set; }
+        public int CurrentDEF { get; set; }
+        public int CurrentRES { get; set; }
+        public float CurrentASPD { get; set; }
+        public float CurrentSP { get; set; }
+        public int CurrentCost { get; set; }
 
-        private AttackType atkType;
-        public float CurrentHP;
-        public int CurrentATK;
-        public int CurrentDEF;
-        public int CurrentRES;
-        public float CurrentASPD;
-        public float CurrnetSP;
+        public int NumberOfAttackedTarget { get; set; }
 
-        private float _sp_regen = 1.0f;
+/*        private float _sp_regen = 1.0f;*/
         private int _blockCount;
         private bool _isAttacking;
         private bool _isSkill;
@@ -40,18 +56,24 @@ namespace TowerDefence.Module.Characters {
         public int BaseATK { get => CharacterStats.baseATK; }
         public int BaseDEF { get => CharacterStats.baseDEF; }
         public int BaseRES { get => CharacterStats.baseRES; }
+        public int BaseCost { get => CharacterStats.cost; }
         public float ASPD { get => CharacterStats.attackSpeed; }
+        public int BaseNumberOfAttackedTarget { get => CharacterStats.numberOfTarget; }
         public bool IsAttacking { get => _isAttacking; }
         public bool IsSkill { get => _isSkill; }
+        public bool IsFullHealth { get => CurrentHP >= BaseHP; }
         public int BlockCount { get => _blockCount; set => _blockCount = value; }
+
 
         #endregion
 
-        public List<Character> Targets;
+        public List<Character> Targets { get; private set; }
 
-        [HideInInspector] public AbilityHolder abilityHolder;
-        [SerializeField] private GameObject _attack_range;
-        private GameObject skill_range;
+        [Space]
+        [Header("Ability")]
+        public AbilityHolder AbilityHolder;
+        [SerializeField] protected CharacterRange _attack_range;
+        private GameObject _skill_range;
 
         private int _flat_def_down;
         private float _scaling_def_down;
@@ -61,10 +83,11 @@ namespace TowerDefence.Module.Characters {
         private float _scaling_res_down;
         private float _magic_dmg_taken_up;
 
-        public float NormalizedASPD() => 0f;
+        private float _atk_interval = 1f;
+
         public abstract void OnDied();
 
-        protected void Start()
+        protected virtual void Start()
         {
             _flat_def_down = 0;
             _scaling_def_down = 0.0f;
@@ -74,35 +97,39 @@ namespace TowerDefence.Module.Characters {
             _scaling_res_down = 0.0f;
             _magic_dmg_taken_up = 1.0f;
 
-            atkType = CharacterStats.atkType;
+            _atkDamageType = CharacterStats.atkType;
             CurrentHP = CharacterStats.baseHP;
             CurrentATK = CharacterStats.baseATK;
             CurrentDEF = CharacterStats.baseDEF;
             CurrentRES = CharacterStats.baseRES;
             CurrentASPD = CharacterStats.attackSpeed;
             BlockCount = CharacterStats.numberOfBlock;
+            NumberOfAttackedTarget = CharacterStats.numberOfTarget;
             Healthbar.SetProgressValues(CurrentHP / CharacterStats.baseHP);
-
-            if (Targets.Count == 0)
-            {
-                Targets = new List<Character>();
-            }
 
             Targets = new List<Character>();
             _anim = GetComponentInChildren<Animator>();
+            
+            CurrentCost = CharacterStats.cost;
+
+            if (TryGetComponent(out AbilityHolder holder))
+            {
+                AbilityHolder = holder;
+            }
         }
 
         public void ToggleAttackingAnimation(bool val)
         {
-            _isAttacking = val;
-            _anim.SetBool("isAttacking", val);
+            StartCoroutine(OnAttackingAnimation(val));   
         }
 
-        public void ToggleSkillAnimation(bool val)
+        private IEnumerator OnAttackingAnimation(bool val)
         {
-            _isSkill = val;
-            _anim.SetBool("isSkill", val);
+            _isAttacking = val;
+            _anim.SetBool("isAttacking", val);
+            yield return new WaitForSeconds(_atk_interval);
         }
+
         public void SetStats(CharacterStats stats)
         {
             CharacterStats = stats;
@@ -112,48 +139,57 @@ namespace TowerDefence.Module.Characters {
         {
             if (range == null)
             {
-                skill_range = _attack_range;
+                _skill_range = _attack_range.gameObject;
                 return;
             }
 
-            skill_range = Instantiate(range);
-            skill_range.transform.SetParent(this.transform);
-            skill_range.transform.localPosition = new Vector3(0f, 0f, 0f);
+            _skill_range = Instantiate(range);
+            _skill_range.transform.SetParent(this.transform);
+            _skill_range.transform.localPosition = new Vector3(0f, 0f, 0f);
+            _skill_range.transform.localRotation = Quaternion.Euler(0f, 0f, 0f);
+            var colliders = _skill_range.GetComponentsInChildren<BoxCollider>();
+            foreach (var collider in colliders)
+            {
+                collider.enabled = true;
+            }
+            _skill_range.SetActive(false);
         }
 
         public void ToggleSkill(bool val)
         {
             _anim.SetBool("isSkill", val);
-            _attack_range.SetActive(!val);
-            skill_range.SetActive(val);
+            _attack_range.gameObject.SetActive(!val);
+            _skill_range.SetActive(val);
         }
 
-        public IEnumerator Attack()
+        public void Attack()
         {
             if (Targets.Count == 0)
             {
-                yield break;
+                return;
             }
 
-            switch (atkType)
+            int targetLimit = Mathf.Min(NumberOfAttackedTarget, Targets.Count);
+
+            for (int i= 0; i < targetLimit; i++)
             {
-                case AttackType.True_Damage:
-                    break;
-                case AttackType.Physical_Damage:
-                    Targets[0].TakePhysicalDamage(CurrentATK);
-                    break;
-                case AttackType.Magic_Damage:
-                    break;
-                default:
-                    break;
+                switch (_atkDamageType)
+                {
+                    case AttackDamageType.True_Damage:
+                        break;
+                    case AttackDamageType.Physical_Damage:
+                        Targets[i].TakePhysicalDamage(CurrentATK);
+                        break;
+                    case AttackDamageType.Magic_Damage:
+                        Targets[i].TakeMagicDamage(CurrentATK);
+                        break;
+                    default:
+                        break;
+                }
             }
-            yield return new WaitForSeconds(60 / 50f);   //change to aspd
-            ToggleAttackingAnimation(false);
-            _anim.SetBool("isAttacking", _isAttacking);
         }
 
-
-        public void TakeArtDamage(float other_character_final_attack)
+        public void TakeMagicDamage(float other_character_final_attack)
         {
             float Art_Damage = other_character_final_attack * (1.0f - ((CurrentRES + _flat_res_down) * (1.0f - _scaling_res_down) / 100f)) * _magic_dmg_taken_up;
             CurrentHP -= Mathf.Floor(Art_Damage);
@@ -170,48 +206,26 @@ namespace TowerDefence.Module.Characters {
             }
 
             CurrentHP -= Mathf.Floor(Phys_Damage);
-            Debug.Log("Damage is :" + Phys_Damage);
-            Debug.Log(CurrentHP);
-            Debug.Log("Now: " + CurrentHP / BaseHP);
             Healthbar.SetProgressValues(CurrentHP / BaseHP);
         }
 
-        public void AddObserver(IStageObserver observer)
+        public void TakeHeal(float other_character_final_heal)
         {
-            Debug.Log(this + " added observer " + observer);
-            _observers.Add(observer);
+            CurrentHP += Mathf.Floor(other_character_final_heal);
+            Healthbar.SetProgressValues(CurrentHP / BaseHP);
         }
 
-        public void RemoveObserver(IStageObserver observer)
+        public void ToogleAttackRangeVisual(bool val)
         {
-            _observers.Remove(observer);
-        }
-
-        protected void NotifyObserver(StageEvents stageEvent)
-        {
-            _observers.ForEach((_observers) =>
+            if (val)
             {
-                _observers.OnNotify(stageEvent);
-            });
+                _attack_range.ShowRangeVisual();
+            }
+            else {
+                _attack_range.HideRangeVisual();
+            }
         }
 
-        protected void NotifyUIObserver(StageUIEvents stageUIEvent, Operator op)
-        {
-            _observers.ForEach((_observers) =>
-            {
-                _observers.OnUIEvent(stageUIEvent, op);
-            });
-        }
-
-        public void NotifyGeneratingDP(int value)
-        {
-            _observers.ForEach((_observers) =>
-            {
-                _observers.OnDPGenerated(value);
-            });
-        }
-
-  
     }
 
 }

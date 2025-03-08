@@ -1,4 +1,6 @@
+using System.Collections.Generic;
 using TowerDefence.Module.Characters;
+using UnityEngine;
 
 namespace TowerDefence.Observer {
     public interface IStageObserver
@@ -6,8 +8,8 @@ namespace TowerDefence.Observer {
         public void OnNotify(StageEvents stageEvent);
         public void OnDPUsed(int value);
         public void OnDPGenerated(int value);
-        public void OnNotifyCharacterSpawn(Character character);
-        public void OnUIEvent(StageUIEvents stageUIEvent, Operator character);
+        public void OnOperatorEvents(StageCharacterEvents stageOperatorEvent, Operator character);
+        public void OnEnemyEvents(StageCharacterEvents stageEnemyEvents, Enemy enemy);
     }
 
 }

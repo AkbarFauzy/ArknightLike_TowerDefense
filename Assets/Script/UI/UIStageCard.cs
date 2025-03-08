@@ -8,24 +8,20 @@ using UnityEngine;
 using TMPro;
 
 namespace TowerDefence.Module.StageUI {
-    public class StageCard : MonoBehaviour
+    public class UIStageCard : StageSubject
     {
-        protected List<IStageObserver> _observers = new List<IStageObserver>();
-
         public Image splash;
-        [SerializeField] private StageObserver StageInstance;
-        [SerializeField] private TextMeshProUGUI dpcostText;
-        [SerializeField] private TextMeshProUGUI cooldownText;
+        [SerializeField] private TextMeshProUGUI _dpcostText;
+        [SerializeField] private TextMeshProUGUI _cooldownText;
 
-        public TextMeshProUGUI Text_DPCOST { get => dpcostText; }
-        public GameObject Op_Prefab { get; set; }
+        public GameObject OperatorPrefab;
+        private GameObject _operatorGameobject;
 
-        private int current_dp_cost;
-        private PlaceObjectOnGrid grid_placement;
+        private int _current_dp_cost;
 
-        private bool isCd;
-        private bool isActive;
-        private StageDP stageDP;
+        private bool _isCd;
+        private bool _isActive;
+        private UIStageDP _stageDP;
 
         private enum CardState
         {
@@ -35,29 +31,34 @@ namespace TowerDefence.Module.StageUI {
 
         private void Start()
         {
-            grid_placement = FindObjectOfType<PlaceObjectOnGrid>();
-            var op_colliders = Op_Prefab.GetComponentsInChildren<BoxCollider>();
-            foreach (var collider in op_colliders)
+            _stageDP = FindObjectOfType<UIStageDP>();
+            if (_stageDP != null)
             {
-                collider.enabled = false;
-            }
-            current_dp_cost = Op_Prefab.GetComponentInChildren<Operator>().CharacterStats.cost;
-            dpcostText.SetText(current_dp_cost.ToString());
-
-            stageDP = FindObjectOfType<StageDP>();
-            if (stageDP != null)
-            {
-                stageDP.OnDpChanged += OnDpValueChanged;
+                _stageDP.OnDpChanged += OnDpValueChanged;
+                AddObserver(_stageDP);
             }
             else
             {
                 Debug.LogError("StageDP not found!");
             }
+
+            var op_colliders = OperatorPrefab.GetComponentsInChildren<BoxCollider>();
+            foreach (var collider in op_colliders)
+            {
+                collider.enabled = false;
+            }
+
+            _operatorGameobject = Instantiate(OperatorPrefab, transform.position, Quaternion.identity);
+            var _operator = _operatorGameobject.GetComponentInChildren<Operator>();
+            _operator.SetStageCard(this);
+            _current_dp_cost = _operator.CharacterStats.cost;
+            _operatorGameobject.SetActive(false);
+            _dpcostText.SetText(_current_dp_cost.ToString());
         }
 
         private void Update()
         {
-            if (!isActive || isCd)
+            if (!_isActive || _isCd)
             {
                 gameObject.GetComponent<Image>().color = new Color(0, 0, 0, 140);
             }
@@ -70,20 +71,16 @@ namespace TowerDefence.Module.StageUI {
 
         public void OnMouseClick()
         {
-            NotifyObserver(StageEvents.OperatorPreDeployed);
-            if (grid_placement.latestOP == null && !isCd && isActive)
+            if (_isActive && !_isCd)
             {
-                grid_placement.latestOP = Instantiate(Op_Prefab, transform.position, Quaternion.identity);
-                grid_placement.latestOP.GetComponentInChildren<Operator>().stageCard = this;
-                grid_placement.latestOP.GetComponent<ObjFollowMouse>().enabled = true;
+                NotifyOperatorEvents(StageCharacterEvents.CharacterPreDeployed, _operatorGameobject.GetComponentInChildren<Operator>());
             }
         }
 
         public void OnDeployed()
         {
             gameObject.SetActive(false);
-            NotifyObserver(StageEvents.OperatorDeployed);
-            NotifyUseDP();
+            NotifyUseDP(_current_dp_cost);
         }
 
         public void OnStandby(float cd)
@@ -94,55 +91,20 @@ namespace TowerDefence.Module.StageUI {
 
         private void OnDpValueChanged(float newDpValue)
         {
-            isActive = current_dp_cost <= newDpValue;
+            _isActive = _current_dp_cost <= newDpValue;
         }
 
         private IEnumerator Cooldown(float cd)
         {
             float timer = cd;
-            isCd = true;
+            _isCd = true;
             while (timer > 0f)
             {
                 timer -= Time.deltaTime;
-                cooldownText.text = string.Format("{0:0.0}", timer);
+                _cooldownText.text = string.Format("{0:0.0}", timer);
                 yield return new WaitForFixedUpdate();
             }
-            isCd = false;
-        }
-
-        public void AddObserver(IStageObserver observer)
-        {
-            Debug.Log(this + " added observer " + observer);
-            _observers.Add(observer);
-        }
-
-        public void RemoveObserver(IStageObserver observer)
-        {
-            _observers.Remove(observer);
-        }
-
-        protected void NotifyObserver(StageEvents stageEvent)
-        {
-            _observers.ForEach((_observers) =>
-            {
-                _observers.OnNotify(stageEvent);
-            });
-        }
-
-        protected void NotifyObserverOperatorSpawn(Operator op)
-        {
-            _observers.ForEach((_observers) =>
-            {
-                _observers.OnNotifyCharacterSpawn(op);
-            });
-        }
-
-        protected void NotifyUseDP()
-        {
-            _observers.ForEach((_observers) =>
-            {
-                _observers.OnDPUsed(current_dp_cost);
-            });
+            _isCd = false;
         }
     }
 

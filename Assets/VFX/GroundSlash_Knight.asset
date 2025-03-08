@@ -12,15 +12,15 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4314402ab4d23c3468bf644d02551491, type: 3}
   m_Name: GroundSlash_Knight
   m_EditorClassIdentifier: 
-  skill_name: 
-  description: 
-  initial_sp: 49
-  sp_cost: 50
-  duration: 10
-  multiplier: 0
-  sp_type: 0
-  abilityType: 0
-  icon: {fileID: 21300000, guid: affeade9874cf2347abb155e8d0db4d8, type: 3}
-  range: {fileID: 3267348543837615615, guid: ad6c16a467d68de45b42902bb4b72f57, type: 3}
-  vfx_asset: {fileID: 6319043798609670562, guid: 4b3e11fe954d586449e7d011b5c8aaef, type: 3}
-  isActivate: 1
+  SkillName: 
+  Description: 
+  InitialSP: 40
+  SPCost: 50
+  Duration: 20
+  Multiplier: 1
+  NumberOfTarget: 3
+  SPType: 0
+  AbilityType: 0
+  Icon: {fileID: 21300000, guid: 443bd321af96a5e4cbfd388760047df5, type: 3}
+  Range: {fileID: 3904508418661062158, guid: 27514f37db7c2e24783c96ace6da4ef9, type: 3}
+  vfx_asset: {fileID: 6689307985926718574, guid: ca58b3c4bf8304440a7ab62986fce7ef, type: 3}

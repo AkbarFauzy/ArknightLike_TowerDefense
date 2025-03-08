@@ -1,30 +1,30 @@
 using System.Collections;
 using System.Collections.Generic;
-using UnityEngine;
 using TowerDefence.Module.State;
+using UnityEngine;
+using UnityEngine.Events;
 
 namespace TowerDefence.Module.Characters {
-    public class Enemy : Character
+    public abstract class Enemy : Character
     {
         protected IEnemyState _currentState;
         public IEnemyState CurrentCharacterState { get => _currentState; }
-
         public EnemyStandbyState StandbyState = new EnemyStandbyState();
         public EnemyPatrolState PatrolState = new EnemyPatrolState();
 
-        private bool _isBlocked;
         [SerializeField] private float speed;
         private PathFinder pathFinder;
 
+        protected bool _isBlocked;
         public bool IsBlocked { get => _isBlocked; set => _isBlocked = value; }
 
-        private void Awake()
+        private new void Awake()
         {
             _currentState = StandbyState;
             _currentState.EnemyEnterState(this);
         }
 
-        private new void Start()
+        protected override void Start()
         {
             base.Start();
             _isBlocked = false;
@@ -36,45 +36,11 @@ namespace TowerDefence.Module.Characters {
             SwitchState(PatrolState);
         }
 
-
         private void Update()
         {
             if (_currentState != null)
             {
                 _currentState.EnemyUpdateState(this);
-            }
-        }
-
-        public void Patrol()
-        {
-            var paths = pathFinder.GetPath();
-            StartCoroutine(FollowPath(paths));
-        }
-
-        private IEnumerator FollowPath(List<Waypoint> paths)
-        {
-            foreach (Waypoint path in paths)
-            {
-                yield return StartCoroutine(MoveToWaypoint(path));
-            }
-            yield return null;
-        }
-
-
-        public IEnumerator MoveToWaypoint(Waypoint path)
-        {
-            Vector3 gridPos = new Vector3(path.GetGridPos().x, transform.position.y, path.GetGridPos().y);
-
-            while (Vector3.Distance(transform.position, gridPos) > 0.001f)
-            {
-                Vector3 direction = gridPos - transform.position;
-                Quaternion targetRotation = Quaternion.LookRotation(direction.normalized, Vector3.up);
-                transform.rotation = Quaternion.RotateTowards(transform.rotation, targetRotation, 500f * Time.deltaTime);
-
-                float step = speed * Time.deltaTime;
-                transform.parent.position = Vector3.MoveTowards(transform.position, gridPos, step);
-
-                yield return new WaitUntil(() => !_isBlocked);
             }
         }
 
@@ -100,13 +66,15 @@ namespace TowerDefence.Module.Characters {
                 Debug.Log("ENEMY HIT AN OPERATOR");
             }
 
+
             if (collision.gameObject.CompareTag("PlayerBase"))
             {
                 Debug.Log("Hit Base");
-                NotifyObserver(StageEvents.TakeBaseDamage);
-                NotifyObserver(StageEvents.EnemyDied);
-                StartCoroutine(OnDiedAnimation());
+                NotifyStageEvents(StageEvents.TakeBaseDamage);
+                NotifyStageEvents(StageEvents.EnemyDied);
+                transform.parent.gameObject.SetActive(false);
             }
+
         }
 
         private void OnTriggerStay(Collider other)
@@ -120,6 +88,43 @@ namespace TowerDefence.Module.Characters {
                 }
             }
         }
+
+
+        public void Patrol()
+        {
+            var paths = pathFinder.GetPath();
+            StartCoroutine(FollowPath(paths));
+        }
+
+        private IEnumerator FollowPath(List<Waypoint> paths)
+        {
+            foreach (Waypoint path in paths)
+            {
+                yield return StartCoroutine(MoveToWaypoint(path));
+            }
+            yield return null;
+        }
+
+        public IEnumerator MoveToWaypoint(Waypoint path)
+        {
+            Vector3 gridPos = new Vector3(path.GetGridPos().x, transform.position.y, path.GetGridPos().y);
+
+            while (Vector3.Distance(transform.position, gridPos) > 0.001f && !_isDead)
+            {
+                Vector3 direction = gridPos - transform.position;
+                Quaternion targetRotation = Quaternion.LookRotation(direction.normalized, Vector3.up);
+                transform.rotation = Quaternion.RotateTowards(transform.rotation, targetRotation, 500f * Time.deltaTime);
+
+                float step = speed * Time.deltaTime;
+                transform.parent.position = Vector3.MoveTowards(transform.position, gridPos, step);
+
+                yield return new WaitUntil(() => !IsBlocked || !IsAttacking);
+            }
+
+            yield return null;
+        }
+
+
         public void SwitchState(IEnemyState state)
         {
             _currentState.EnemyExitState(this);
@@ -139,7 +144,7 @@ namespace TowerDefence.Module.Characters {
             {
                 _isDead = true;
                 StartCoroutine(OnDiedAnimation());
-                NotifyObserver(StageEvents.EnemyDied);
+                NotifyStageEvents(StageEvents.EnemyDied);
             }
         }
 

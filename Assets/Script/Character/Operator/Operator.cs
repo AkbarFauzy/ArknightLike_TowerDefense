@@ -3,47 +3,43 @@ using System.Collections.Generic;
 using TowerDefence.Module.State;
 using TowerDefence.Module.Ability;
 using TowerDefence.Module.StageUI;
+using TowerDefence.Manager;
 using UnityEngine;
+using System;
 
 namespace TowerDefence.Module.Characters {
     public class Operator : Character
     {
         protected IOperatorState _currentState;
+
         public IOperatorState CurrentOperatorState { get => _currentState; }
 
         public OperatorPreDeployedState PreDeployedState = new OperatorPreDeployedState();
         public OperatorDeployedState DeployedState = new OperatorDeployedState();
 
-        [Header("Operator Stats")]
-        public int cost;
-        [SerializeField] [Range(1, 6)] private int rarity;
-        [SerializeField] private int lvl;
-        [SerializeField] private int blockedEnemy;
-        [SerializeField] private float _redeployTime;
+        private int _blockedEnemy;
+        private float _redeployTime;
 
-        [Header("Operator UI")]
-        [HideInInspector] public StageCard stageCard;
-        public UIOperatorActions UIOperatorAction;
+        private UIStageCard _stageCard;
 
         private CubeEditor _deployed_grid;
 
-        public bool MaxedOutBlock() => BlockCount <= blockedEnemy;
+        public bool MaxedOutBlock() => BlockCount <= _blockedEnemy;
 
         private void Awake()
         {
             _currentState = PreDeployedState;
             _currentState.OperatorEnterState(this);
+            if (StageManager.Instance.UIOperatorAction != null)
+            {
+                Debug.Log("ObserverAdded");
+                AddObserver(StageManager.Instance.UIOperatorAction);
+            }
         }
 
         private new void Start()
         {
             base.Start();
-            cost = CharacterStats.cost;
-
-            if (TryGetComponent<AbilityHolder>(out AbilityHolder holder))
-            {
-                abilityHolder = holder;
-            }
         }
 
         private void Update()
@@ -51,6 +47,15 @@ namespace TowerDefence.Module.Characters {
             if (_currentState != null)
             {
                 _currentState.OperatorUpdateState(this);
+            }
+        }
+
+
+        private void OnDestroy()
+        {
+            if (StageManager.Instance.UIOperatorAction != null)
+            {
+                RemoveObserver(StageManager.Instance.UIOperatorAction);
             }
         }
 
@@ -67,36 +72,41 @@ namespace TowerDefence.Module.Characters {
             _currentState.OperatorEnterState(this);
         }
 
-        private void OnCollisionEnter(Collision other)
+        protected void OnCollisionEnter(Collision other)
         {
             if (other.gameObject.CompareTag("Enemy") && !MaxedOutBlock())
             {
-                blockedEnemy += other.gameObject.GetComponent<Enemy>().BlockCount;
+                _blockedEnemy += other.gameObject.GetComponent<Enemy>().BlockCount;
                 other.gameObject.GetComponent<Enemy>().IsBlocked = true;
             }
         }
-        private void OnTriggerStay(Collider other)
+        protected void OnTriggerStay(Collider other)
         {
             if (other.gameObject.CompareTag("Enemy"))
             {
                 Character enemy = other.gameObject.GetComponentInChildren<Enemy>();
-                if (!this.Targets.Contains(enemy))
+                if (!Targets.Contains(enemy))
                 {
-                    this.Targets.Add(enemy);
+                    Targets.Add(enemy);
                 }
 
                 if (enemy.CurrentHP <= 0)
                 {
-                    blockedEnemy -= enemy.BlockCount;
+                    _blockedEnemy -= enemy.BlockCount;
                     other.enabled = false;
                 }
             }
+        }
 
-            if (CurrentHP <= 0)
-            {
-                other.GetComponentInChildren<Enemy>().IsBlocked = false;
-            }
+        private void OnTriggerExit(Collider other)
+        {
+            Character enemy = other.gameObject.GetComponentInChildren<Enemy>();
+            Targets.Remove(enemy);
+        }
 
+        public void SetStageCard(UIStageCard card)
+        {
+            _stageCard = card;
         }
 
         public void SetGrid(CubeEditor grid)
@@ -104,16 +114,31 @@ namespace TowerDefence.Module.Characters {
             _deployed_grid = grid;
         }
 
-        private void OnTriggerExit(Collider other)
-        {
-            Character enemy = other.gameObject.GetComponentInChildren<Enemy>();
-            this.Targets.Remove(enemy);
+        public void OnPreDeployed() {
+            ToogleAttackRangeVisual(true);
         }
+
+        public void OnDeployed()
+        {
+            Debug.Log("operator deployed");
+            var colliders = GetComponentsInChildren<BoxCollider>();
+            foreach (var collider in colliders)
+            {
+                collider.enabled = true;
+            }
+
+            var playerColldier = GetComponent<BoxCollider>();
+            playerColldier.enabled = true;
+            AbilityHolder.enabled = true;
+            _stageCard.OnDeployed();
+            ToogleAttackRangeVisual(false);
+        }
+
 
         public override void OnDied()
         {
             _deployed_grid.isPlaceable = true;
-            cost += Mathf.RoundToInt((float)cost * 1.5f);
+            CurrentCost += Mathf.RoundToInt((float)BaseCost * 1.5f);
             var colliders = gameObject.GetComponentsInChildren<BoxCollider>();
             foreach (var collider in colliders)
             {
@@ -126,19 +151,20 @@ namespace TowerDefence.Module.Characters {
         {
             _anim.SetTrigger("OnDied");
             yield return new WaitForSeconds(2.0f);
-            Destroy(this.transform.parent.gameObject);
+            Destroy(transform.parent.gameObject);
         }
 
         public void OnMouseDown()
         {
-            NotifyUIObserver(StageUIEvents.CharacterDetails, this);
-            NotifyUIObserver(StageUIEvents.CharacterAction, this);
+            NotifyOperatorEvents(StageCharacterEvents.CharacterDetails, this);
+            NotifyOperatorEvents(StageCharacterEvents.CharacterAction, this);
         }
 
         public void InvokeCancel()
         {
-            Destroy(this.gameObject.transform.parent);
+            Destroy(gameObject.transform.parent);
         }
+
     }
 
 }

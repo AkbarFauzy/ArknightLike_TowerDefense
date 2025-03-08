@@ -6,14 +6,7 @@ namespace TowerDefence.Module.State {
     {
         public void OperatorEnterState(Operator op)
         {
-            op.abilityHolder.SetSkillIcon();
-
-
-            /*      if (op.UIOperatorAction.gameObject.activeSelf)
-                    {
-                        return;
-                    }
-                    op.UIOperatorAction.ToogleOperatorActions(false);*/
+            op.OnPreDeployed();
         }
 
         public void OperatorUpdateState(Operator op)
@@ -23,12 +16,7 @@ namespace TowerDefence.Module.State {
 
         public void OperatorExitState(Operator op)
         {
-            /* Debug.Log(op);
-             if (op.UIOperatorAction.gameObject.activeSelf)
-             {
-                 return;
-             }
-             op.UIOperatorAction.ToogleOperatorActions(false);*/
+
         }
 
 

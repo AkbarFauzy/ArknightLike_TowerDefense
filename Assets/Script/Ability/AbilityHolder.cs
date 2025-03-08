@@ -3,32 +3,34 @@ using System.Collections.Generic;
 using TowerDefence.Module.Characters;
 using TowerDefence.Module.State;
 using UnityEngine;
-using UnityEngine.VFX;
-using UnityEngine.UI;
+
 
 namespace TowerDefence.Module.Ability {
+    public enum AbilityState
+    {
+        cooldown,
+        ready,
+        active,
+    }
     public class AbilityHolder : MonoBehaviour
     {
         public float current_sp;
         public int selected_ability_index;
         private float sp_regen = 1.0f;
-        [SerializeField] private ProgressBar SPBar;
+        [SerializeField] private UIProgressBar SPBar;
+        [SerializeField] private GameObject _skillReadyIcon;
         [SerializeField] private Ability[] ability = new Ability[3];
-        [SerializeField] private Button activate_button;
 
-        private bool isActivate = false;
-        private Operator op;
+        private Operator _op;
 
         public Ability SelectedAbility { get => ability[selected_ability_index]; }
         public Sprite GetSelectedAbilityIcon { get => ability[selected_ability_index].Icon; }
         public AbilityType GetSelectedAbilityType { get => ability[selected_ability_index].AbilityType; }
+        public AbilityState GetAbilityState { get => _currentAbilityState; }
 
-        enum AbilityState
-        {
-            cooldown,
-            ready,
-            active,
-        }
+        private AbilityState _currentAbilityState = AbilityState.cooldown;
+        private float _activeTimer = 0f;
+        private bool _isEnabled = false;
 
         private void Awake()
         {
@@ -38,89 +40,74 @@ namespace TowerDefence.Module.Ability {
 
         private void Start()
         {
-            SetSkillIcon();
-            op = this.GetComponent<Operator>();
-            op.SetSkillRange(SelectedAbility.Range);
+            _op = this.GetComponent<Operator>();
+            _op.SetSkillRange(SelectedAbility.Range);
         }
 
         private void Update()
         {
-            if (op.CurrentOperatorState is OperatorDeployedState)
+            if (_op.CurrentOperatorState is OperatorDeployedState)
             {
                 this.enabled = true;
             }
-        }
 
+            if (!_isEnabled)
+                return;
 
-        private void OnEnable()
-        {
-            StartCoroutine(StartSPGeneration());
-        }
-
-        private IEnumerator StartSPGeneration()
-        {
-            while (true)
+            switch (_currentAbilityState)
             {
-                if (!isActivate)
-                {
-                    if (current_sp >= SelectedAbility.SPCost)
+                case AbilityState.cooldown:
+                    if (current_sp < SelectedAbility.SPCost)
                     {
-                        activate_button.interactable = true;
+                        current_sp += Time.deltaTime * sp_regen;
+                        SPBar.SetProgressValues(current_sp / ability[selected_ability_index].SPCost);
+                        _skillReadyIcon.SetActive(false);
                     }
                     else
                     {
-                        activate_button.interactable = false;
-                        current_sp += sp_regen;
-                        SPBar.SetProgressValues(current_sp / ability[selected_ability_index].SPCost);
+                        _currentAbilityState = AbilityState.ready;
+                        _skillReadyIcon.SetActive(true);
                     }
+                    break;
 
-                }
-                yield return new WaitForSeconds(1.0f);
+                case AbilityState.active:
+                    _activeTimer -= Time.deltaTime;
+                    SPBar.SetProgressValues(_activeTimer / SelectedAbility.Duration);
+                    if (_activeTimer <= 0f) {
+                        _currentAbilityState = AbilityState.cooldown;
+                        DeactivateSkill();
+                    }
+                    break;
+
+                case AbilityState.ready:
+                    _skillReadyIcon.SetActive(true);
+                    break;
+
+                default:
+                    break;
             }
+        }
+
+        private void OnEnable()
+        {
+            _isEnabled = true;
         }
 
         public void InvokeSkill()
         {
-            op.ToggleSkill(true);
-            StartCoroutine(ActivateSkill());
+            Debug.Log("Skill Invoke");
+            _currentAbilityState = AbilityState.active;
+            _op.ToggleSkill(true);
+            _activeTimer = SelectedAbility.Duration;
+            current_sp = 0;
+            SelectedAbility.Activate(_op);
         }
 
         public void DeactivateSkill()
         {
-            op.ToggleSkill(false);
-            SelectedAbility.Deactivate();
+            _op.ToggleSkill(false);
+            SelectedAbility.Deactivate(_op);
         }
-
-        public IEnumerator ActivateSkill()
-        {
-            if (current_sp < SelectedAbility.SPCost && !isActivate)
-            {
-                yield return null;
-            }
-            current_sp = 0;
-            StartCoroutine(StartTimer());
-            SelectedAbility.Activate();
-            yield return new WaitUntil(() => !isActivate);
-            DeactivateSkill();
-        }
-
-        public void PlayVFX()
-        {
-            SelectedAbility.SpawnVFX();
-        }
-
-        public void SetSkillIcon()
-        {
-            activate_button.GetComponent<Image>().sprite = SelectedAbility.Icon;
-        }
-
-        public IEnumerator StartTimer()
-        {
-            isActivate = true;
-            yield return new WaitForSeconds(SelectedAbility.Duration);
-            isActivate = false;
-        }
-
 
     }
 

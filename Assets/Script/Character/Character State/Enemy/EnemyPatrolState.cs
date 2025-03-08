@@ -1,40 +1,47 @@
 using TowerDefence.Module.Characters;
 
 namespace TowerDefence.Module.State{
-public class EnemyPatrolState : IEnemyState
-{
-    public void EnemyEnterState(Enemy enemy)
+    public class EnemyPatrolState : IEnemyState
     {
-        enemy.Patrol();
-    }
-
-    public void EnemyExitState(Enemy enemy)
-    {
-        enemy.OnDied();
-    }
-
-    public void EnemyUpdateState(Enemy enemy)
-    {
-        if (enemy.CurrentHP <= 0)
+        public void EnemyEnterState(Enemy enemy)
         {
-            EnemyExitState(enemy);
-            return;
+            enemy.Patrol();
         }
 
-        if (!enemy.IsAttacking && enemy.IsBlocked && enemy.Targets.Count != 0)
+        public void EnemyExitState(Enemy enemy)
         {
-            if (enemy.Targets[0] == null)
+            enemy.OnDied();
+        }
+
+        public void EnemyUpdateState(Enemy enemy)
+        {
+            if (enemy.CurrentHP <= 0)
             {
-                enemy.Targets.RemoveAt(0);
-                enemy.IsBlocked = false;
+                EnemyExitState(enemy);
+                return;
             }
 
-            if (!enemy.IsSkill)
+            if (enemy.Targets.Count == 0)
             {
-                enemy.ToggleAttackingAnimation(true);
+                enemy.ToggleAttackingAnimation(false);
+                return;
+            }
+
+            if (enemy.Targets.Count != 0)
+            {
+                if (enemy.Targets[0] == null)
+                {
+                    enemy.Targets.RemoveAt(0);
+                    enemy.IsBlocked = false;
+                    return;
+                }
+
+                if (!enemy.IsAttacking)
+                {
+                    enemy.ToggleAttackingAnimation(true);
+                }
             }
         }
     }
-}
 
 }

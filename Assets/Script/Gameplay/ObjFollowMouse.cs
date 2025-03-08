@@ -18,7 +18,7 @@ namespace TowerDefence.Module.Gameplay {
         {
             if (!isOnGrid)
             {
-                transform.position = placeObjectonGrid.smoothMousePosition + new Vector3(0, 0.7f, 0);
+                transform.position = placeObjectonGrid.SmoothMousePosition + new Vector3(0, 0.7f, 0);
             }
         }
     }

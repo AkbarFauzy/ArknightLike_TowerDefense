@@ -8,7 +8,7 @@ namespace TowerDefence.Module.Ability
     [CreateAssetMenu]
     public class DPGenerator : Ability
     {
-        public override void Activate()
+        public override void Activate(Character character)
         {
             Debug.Log("DP Generator Activate");
 
@@ -22,7 +22,7 @@ namespace TowerDefence.Module.Ability
             }
         }
 
-        public override void Deactivate()
+        public override void Deactivate(Character character)
         {
         }
     }

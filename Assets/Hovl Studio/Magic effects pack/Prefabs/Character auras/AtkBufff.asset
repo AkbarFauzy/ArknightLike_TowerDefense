@@ -12,14 +12,15 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 569beacdfa277574abfef702adbe453a, type: 3}
   m_Name: AtkBufff
   m_EditorClassIdentifier: 
-  skill_name: Buff UP
-  description: 
-  initial_sp: 20
-  sp_cost: 30
-  duration: 10
-  multiplier: 0.2
-  sp_type: 0
-  abilityType: 0
-  icon: {fileID: 21300000, guid: 8360e65796d0472418b784c29f0ef782, type: 3}
-  range: {fileID: 0}
+  SkillName: test
+  Description: adwad
+  InitialSP: 48
+  SPCost: 50
+  Duration: 30
+  Multiplier: 1.5
+  NumberOfTarget: 0
+  SPType: 0
+  AbilityType: 0
+  Icon: {fileID: 21300000, guid: 2310f03acf8628a4fafafeb6134d294c, type: 3}
+  Range: {fileID: 5778949315312633545, guid: ad6c16a467d68de45b42902bb4b72f57, type: 3}
   vfx_asset: {fileID: 7155335147208632822, guid: 97c43495f80a3244fad1301dfafbe252, type: 3}

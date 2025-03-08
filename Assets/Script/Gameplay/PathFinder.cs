@@ -61,14 +61,14 @@ public class PathFinder : MonoBehaviour
 
         foreach (Vector2Int direction in directions) {
             Vector2Int explorationCoordinates = searchCenter.GetGridPos() + direction;
-            if (PathManager.PathManagerInstance.GetGrid().ContainsKey(explorationCoordinates)) {
+            if (PathManager.Instance.GetGrid().ContainsKey(explorationCoordinates)) {
                 QueueNewNeighbour(explorationCoordinates);
             }
         }
     }
 
     private void QueueNewNeighbour(Vector2Int neighbourCoordinates) {
-        Waypoint neighbour = PathManager.PathManagerInstance.GetGrid()[neighbourCoordinates];
+        Waypoint neighbour = PathManager.Instance.GetGrid()[neighbourCoordinates];
         if (!neighbour.isExplored || !queue.Contains(neighbour)) {
             queue.Enqueue(neighbour);
             neighbour.exploreFrom = searchCenter;

@@ -8,15 +8,7 @@ namespace TowerDefence.Module.State {
     {
         public void OperatorEnterState(Operator op)
         {
-            var colliders = op.gameObject.GetComponentsInChildren<BoxCollider>();
-            op.UIOperatorAction.ToogleOperatorActions();
-            foreach (var collider in colliders)
-            {
-                collider.enabled = true;
-            }
-            op.abilityHolder.enabled = true;
-            /*        op.ToggleSkillRange(false);*/
-            op.stageCard.OnDeployed();
+            op.OnDeployed();
         }
         public void OperatorUpdateState(Operator op)
         {

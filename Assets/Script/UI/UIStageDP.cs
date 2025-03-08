@@ -1,27 +1,28 @@
 using System.Collections;
 using System.Collections.Generic;
-using UnityEngine.UI;
-using TMPro;
+using TowerDefence.Module.Characters;
 using UnityEngine;
-using System;
+using TMPro;
 
-public class StageDP : MonoBehaviour
+public class UIStageDP : StageObserver
 {
     public delegate void DPChangeEventHandler(float newDPValue);
     public event DPChangeEventHandler OnDpChanged;
+    private float current_progress_value;
 
     [HideInInspector] private int current_stage_dp;
 
     [SerializeField] private int initial_stage_dp = 10;
-    private float current_progress_value;
     [SerializeField] private int max_dp = 99;
     [SerializeField] private float dp_regen_speed = 2f;
 
-    [SerializeField] private ProgressBar dp_bar;
+    [SerializeField] private UIProgressBar dp_bar;
     [SerializeField] private TextMeshProUGUI dp_text;
 
-    private void Start()
+
+    protected new void Start()
     {
+        base.Start();
         current_progress_value = 0;
         current_stage_dp = initial_stage_dp + 5;
         dp_text.text = current_stage_dp.ToString();
